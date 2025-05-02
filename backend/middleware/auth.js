@@ -1,7 +1,5 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
-
 const authenticateUser = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -10,7 +8,7 @@ const authenticateUser = (req, res, next) => {
       return res.status(401).json({ error: 'Authentication token is required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
   } catch (error) {
@@ -20,4 +18,4 @@ const authenticateUser = (req, res, next) => {
 
 module.exports = {
   authenticateUser
-};
+}; 

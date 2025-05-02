@@ -1,6 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { verifyToken } = require('../utils/authUtils'); 
 const bcrypt = require('bcrypt');
 
 function calcAge(dob) {
@@ -13,15 +12,11 @@ function calcAge(dob) {
     }
     return age;
 }
+
 exports.getUserDetails = async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1]; 
-    const decoded = verifyToken(token);
-    if (!decoded) {
-        return res.status(401).json({ message: 'Invalid or expired token' });
-    }
     try {
-        const userId =  decoded.id;
-        const role = decoded.role;
+        const userId = req.user.id;
+        const role = req.user.role;
         let user;
         if (role === 'admin') {
             user = await prisma.admin.findUnique({
@@ -36,47 +31,43 @@ exports.getUserDetails = async (req, res) => {
                 where: { id: userId }
             });
         } else {
-            return res.status(400).json({ message: 'Invalid role' });
+            return res.status(400).json({ success: false, message: 'Invalid role' });
         }
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ success: false, message: 'User not found' });
         }
         const age = user.dob ? calcAge(user.dob) : null;
 
-        res.status(200).json({ user, age });
+        res.status(200).json({ 
+            success: true, 
+            data: { user, age } 
+        });
     } catch (error) {
         console.error('Error fetching user details:', error);
-        res.status(500).json({ message: 'Failed to fetch user details' });
+        res.status(500).json({ success: false, message: 'Failed to fetch user details' });
     }
 };
 
-
 exports.updateUserProfile = async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    const decoded = verifyToken(token);
-    if (!decoded) {
-        return res.status(401).json({ message: 'Invalid or expired token' });
-    }
-
-    const userId = decoded.id;
-    const role = decoded.role;
-    const { name, email, phone, dob, password, address } = req.body;
-    const profilePhoto = req.file ? req.file.filename : null;
-
-    const updateData = {
-        name,
-        email,
-        phone,
-        address,
-        dob: dob ? new Date(dob) : undefined,
-        profilePhoto: profilePhoto || undefined,
-    };
-    if (password) {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        updateData.password = hashedPassword;
-    }
-
     try {
+        const userId = req.user.id;
+        const role = req.user.role;
+        const { name, email, phone, dob, password, address } = req.body;
+        const profilePhoto = req.file ? req.file.filename : null;
+
+        const updateData = {
+            name,
+            email,
+            phone,
+            address,
+            dob: dob ? new Date(dob) : undefined,
+            profilePhoto: profilePhoto || undefined,
+        };
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateData.password = hashedPassword;
+        }
+
         let updatedUser;
         if (role === 'patient') {
             updatedUser = await prisma.patient.update({
@@ -94,14 +85,22 @@ exports.updateUserProfile = async (req, res) => {
                 data: updateData,
             });
         } else {
-            return res.status(400).json({ message: 'Invalid role' });
+            return res.status(400).json({ success: false, message: 'Invalid role' });
         }
 
         const age = updatedUser.dob ? calcAge(updatedUser.dob) : null;
 
-        return res.status(200).json({ message: 'Profile updated successfully', user: updatedUser, age });
+        return res.status(200).json({ 
+            success: true, 
+            message: 'Profile updated successfully', 
+            data: { user: updatedUser, age } 
+        });
     } catch (error) {
         console.error('Error updating user profile:', error);
-        return res.status(500).json({ message: 'Failed to update profile', error: error.message });
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update profile', 
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
+        });
     }
 };

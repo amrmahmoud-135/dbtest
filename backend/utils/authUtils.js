@@ -1,12 +1,14 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret-key-for-development';
+
 const generateToken = (userId, role) => {
-  return jwt.sign({ id: userId, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return jwt.sign({ id: userId, role }, JWT_SECRET, { expiresIn: '1h' });
 };
 
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET);  
+    return jwt.verify(token, JWT_SECRET);  
   } catch (error) {
     return null; 
   }

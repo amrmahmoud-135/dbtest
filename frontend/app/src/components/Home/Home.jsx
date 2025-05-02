@@ -100,19 +100,38 @@ const Home = () => {
         password,
       });
 
-      const { token, role } = response.data;
-      console.log("Token:", token);
-      localStorage.setItem("token", token); // حفظ التوكن في الlocalStorage
-      if (role === "patient") {
-        navigate("/patient-profile"); // التوجيه إلى صفحة الملف الشخصي للمريض
-      } else if (role === "doctor") {
-        navigate("/doctor-profile"); // التوجيه إلى صفحة الملف الشخصي للطبيب
+      console.log('Login response:', response.data);
+
+      if (response.data.success) {
+        const { token, role, user } = response.data;
+        console.log('Token:', token);
+        console.log('Role:', role);
+        console.log('User:', user);
+
+        if (!token) {
+          throw new Error('Token not received from server');
+        }
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('role', role);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        // Force a small delay to ensure localStorage is updated
+        setTimeout(() => {
+          if (role === 'patient') {
+            navigate('/patient-profile');
+          } else if (role === 'doctor') {
+            navigate('/doctor-profile');
+          } else if (role === 'admin') {
+            navigate('/admin-profile');
+          }
+        }, 100);
       } else {
-        // إضافة المنطق للـ doctor أو الـ admin إذا كان ذلك مطلوبًا
+        throw new Error(response.data.message || 'Login failed');
       }
     } catch (error) {
-      console.error("Error logging in:", error.response?.data || error.message);
-      alert("Login failed. Please try again.");
+      console.error("Error during login:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Login failed. Please try again.");
     }
   };
 
@@ -131,12 +150,6 @@ const Home = () => {
     formData.append("nationalId", nationalId);
     formData.append('address', address);
     formData.append("profilePhoto", profilePhoto);
-    console.log("Profile Photo:", profilePhoto); // تحقق إذا كانت الصورة موجودة أم لا
-    console.log("Form data being sent:", formData);
-    if (!profilePhoto) {
-      alert("Please upload a profile photo.");
-      return;
-    }
 
     try {
       const response = await axios.post(
@@ -148,23 +161,43 @@ const Home = () => {
           },
         }
       );
-      console.log("Response:", response.data);
-      const { token, role } = response.data;
-      console.log("Token:", token);
-      localStorage.setItem("token", token); // حفظ التوكن في الlocalStorage
-      if (role === "patient") {
-        navigate("/patient-profile");
-      } else if (role === "doctor") {
-        navigate("/doctor-profile");
+      
+      console.log('Full signup response:', response);
+      console.log('Signup response data:', response.data);
+
+      if (response.data.success) {
+        const { token, role, user } = response.data;
+        console.log('Token:', token);
+        console.log('Role:', role);
+        console.log('User:', user);
+
+        if (!token) {
+          throw new Error('Token not received from server');
+        }
+
+        localStorage.setItem('token', token);
+        localStorage.setItem('role', role);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        if (role === 'patient') {
+          navigate('/patient-profile');
+        } else if (role === 'doctor') {
+          navigate('/doctor-profile');
+        } else if (role === 'admin') {
+          navigate('/admin-profile');
+        }
       } else {
-        // التعامل مع باقي الأدوار إذا لزم الأمر
+        throw new Error(response.data.message || 'Signup failed');
       }
     } catch (error) {
-      console.error(
-        "Error during signup:",
-        error.response ? error.response.data : error.message
-      );
+      console.error("Error during signup:", error.response?.data || error.message);
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else if (error.response?.data?.existingUser) {
+        alert(`User with this email already exists. Please try logging in instead.`);
+      } else {
       alert("Sign Up failed. Please try again.");
+      }
     }
   };
 

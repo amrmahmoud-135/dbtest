@@ -19,111 +19,152 @@ function calcAge(dob) {
 }
 
 const signup = async (req, res) => {
-    const { name, email, password, phone, dob, nationalId, address  } = req.body;
-
-    if (!dob) {
-        return res.status(400).json({ message: 'Date of birth (dob) is required!' });
-    }
-
-    const profilePhoto = req.file ? req.file.filename : null;
-
     try {
-        let user;
-        let userId;
-        let role = '';
+        console.log('Signup request body:', req.body);
+        const { name, email, password, phone, dob, nationalId, address } = req.body;
+
+        // Validate required fields
+        if (!name || !email || !password || !phone || !dob || !nationalId || !address) {
+            console.log('Missing required fields');
+            return res.status(400).json({ 
+                success: false,
+                message: 'All fields are required' 
+            });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            console.log('Invalid email format');
+            return res.status(400).json({ 
+                success: false,
+                message: 'Invalid email format' 
+            });
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+            console.log('Password too short');
+            return res.status(400).json({ 
+                success: false,
+                message: 'Password must be at least 6 characters long' 
+            });
+        }
+
+        const profilePhoto = req.file ? req.file.filename : null;
         const parsedDob = new Date(dob);
 
         if (isNaN(parsedDob.getTime())) {
-            return res.status(400).json({ message: 'Invalid date format for dob. Please provide a valid date in YYYY-MM-DD format.' });
+            console.log('Invalid date format');
+            return res.status(400).json({ 
+                success: false,
+                message: 'Invalid date format for dob. Please provide a valid date in YYYY-MM-DD format.' 
+            });
         }
 
         const age = calcAge(parsedDob);
         if (age === null) {
-            return res.status(400).json({ message: 'Invalid date of birth.' });
+            console.log('Invalid date of birth');
+            return res.status(400).json({ 
+                success: false,
+                message: 'Invalid date of birth.' 
+            });
         }
 
-        if (email.endsWith('@doctor.com')) {
-            user = await prisma.Doctor.findUnique({ where: { email } });
-            if (user) {
-                return res.status(400).json({ message: 'Doctor with this email already exists!' });
-            }
+        // Check if user already exists
+        const existingPatient = await prisma.Patient.findUnique({ where: { email } });
+        const existingDoctor = await prisma.Doctor.findUnique({ where: { email } });
+        const existingAdmin = await prisma.Admin.findUnique({ where: { email } });
 
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-            user = await prisma.Doctor.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    phone,
-                    dob: parsedDob,
-                    nationalId,
-                    profilePhoto,
-                },
+        if (existingPatient || existingDoctor || existingAdmin) {
+            console.log('User already exists');
+            const existingUser = existingPatient || existingDoctor || existingAdmin;
+            return res.status(400).json({ 
+                success: false,
+                message: `User with email ${email} already exists. Please try logging in instead.`,
+                existingUser: {
+                    id: existingUser.id,
+                    name: existingUser.name,
+                    email: existingUser.email,
+                    role: existingPatient ? 'patient' : (existingDoctor ? 'doctor' : 'admin')
+                }
             });
-            userId = user.id;
-            role = 'doctor';
-
-        } else if (email.endsWith('@admin.com')) {
-            user = await prisma.Admin.findUnique({ where: { email } });
-            if (user) {
-                return res.status(400).json({ message: 'Admin with this email already exists!' });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-            user = await prisma.Admin.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                },
-            });
-            userId = user.id;
-            role = 'admin';
-
-        } else {
-            user = await prisma.Patient.findUnique({ where: { email } });
-            if (user) {
-                return res.status(400).json({ message: 'Patient with this email already exists!' });
-            }
-
-            const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-            user = await prisma.Patient.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    phone,
-                    dob: parsedDob,
-                    nationalId,
-                    profilePhoto,
-                    address,   
-                },
-            });
-            userId = user.id;
-            role = 'patient';
         }
 
-        const token = generateToken(userId, role);
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        let user;
+        let role = '';
 
-        console.log(" Received body:", req.body);
-        console.log(" Received file:", req.file);
+        try {
+            if (email.endsWith('@doctor.com')) {
+                user = await prisma.Doctor.create({
+                    data: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        phone,
+                        dob: parsedDob,
+                        nationalId,
+                        profilePhoto,
+                        specialization: req.body.specialization || 'General',
+                        experience: parseInt(req.body.experience) || 0
+                    },
+                });
+                role = 'doctor';
+            } else if (email.endsWith('@admin.com')) {
+                user = await prisma.Admin.create({
+                    data: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                    },
+                });
+                role = 'admin';
+            } else {
+                user = await prisma.Patient.create({
+                    data: {
+                        name,
+                        email,
+                        password: hashedPassword,
+                        phone,
+                        dob: parsedDob,
+                        nationalId,
+                        profilePhoto,
+                        address,
+                    },
+                });
+                role = 'patient';
+            }
 
-        return res.status(201).json({
-            message: `${role.charAt(0).toUpperCase() + role.slice(1)} signed up successfully!`,
-            token,
-            role,
-            user,
-            age,
-        });
+            const token = generateToken(user.id, role);
+            const { password: _, ...userWithoutPassword } = user;
+
+            console.log('Signup successful');
+            console.log('Generated token:', token);
+            console.log('User role:', role);
+            
+            return res.status(201).json({
+                success: true,
+                message: `${role.charAt(0).toUpperCase() + role.slice(1)} signed up successfully!`,
+                token,
+                role,
+                user: userWithoutPassword
+            });
+        } catch (dbError) {
+            console.error('Database error during signup:', dbError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create user in database',
+                error: process.env.NODE_ENV === 'development' ? dbError.message : 'Internal server error'
+            });
+        }
 
     } catch (error) {
         console.error('Error during signup:', error);
         return res.status(500).json({
+            success: false,
             message: 'Failed to signup',
-            error: error.message,
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
         });
     }
 };

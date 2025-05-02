@@ -2,15 +2,15 @@ const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const cors = require("cors");
-const dotenv = require("dotenv");
+const config = require("./config");
 
 const adminRoutes = require("./routes/adminRoutes");
 const loginRoutes = require("./routes/loginRoute");
-const signup = require("./routes/signupRoutes");
+const signupRoutes = require("./routes/signupRoutes");
 const userRoutes = require("./routes/userRoutes");
-dotenv.config();
+const patientNoteRoutes = require("./routes/patientNoteRoutes");
 
-if (!process.env.DATABASE_URL) {
+if (!config.DATABASE_URL) {
   console.error("DATABASE_URL is missing in .env file");
   process.exit(1);
 }
@@ -26,8 +26,9 @@ app.use('/uploads', express.static('uploads'));
 
 app.use("/api/admin", adminRoutes);
 app.use("/api/login", loginRoutes);
-app.use("/api/signup", signup);
+app.use("/api/signup", signupRoutes);
 app.use("/api", userRoutes);
+app.use("/api/patients", patientNoteRoutes);
 
 app.listen(process.env.PORT || 5000, async () => {
   try {

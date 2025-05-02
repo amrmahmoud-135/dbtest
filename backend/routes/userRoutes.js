@@ -1,18 +1,16 @@
 const express = require("express");
-const {
-  getUserDetails,
-  updateUserProfile,
-} = require("../controllers/userController");
-const { verifyTokenMiddleware } = require("../utils/authMiddleware"); // استيراد الميدل وير للتحقق من التوكن
+const userController = require("../controllers/userController");
+const { authenticateUser } = require("../utils/authMiddleware");
 const upload = require("../utils/uploadMiddleware");
 const router = express.Router();
-router.get("/user/details", verifyTokenMiddleware, getUserDetails);
+
+router.get("/user/details", authenticateUser, userController.getUserDetails);
 
 router.put(
   "/user/update",
-  verifyTokenMiddleware,
+  authenticateUser,
   upload.single("profilePhoto"),
-  updateUserProfile
+  userController.updateUserProfile
 );
 
 module.exports = router;
