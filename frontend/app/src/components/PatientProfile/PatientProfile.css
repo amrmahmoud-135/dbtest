@@ -1432,6 +1432,8 @@ body {
     transparent
   );
   animation: shine 3s infinite;
+  pointer-events: none;
+  z-index: 2;
 }
 
 .form-actions .cancel-button {
@@ -1446,6 +1448,40 @@ body {
 
 .form-actions button:active {
   transform: translateY(1px) scale(0.98);
+}
+
+/* Add a global save-button style for use outside .form-actions */
+.save-button.global {
+  background: linear-gradient(45deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(170, 36, 78, 0.2);
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 12px 28px;
+  position: relative;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.save-button.global:hover {
+  transform: translateY(-3px) scale(1.02);
+  filter: brightness(1.1);
+}
+
+.save-button.global:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.save-button.global i {
+  margin-right: 8px;
+  color: white;
+  font-size: 18px;
 }
 
 /* Enhanced Medical History Section */
@@ -1921,4 +1957,357 @@ body {
 .edit-button:hover i,
 .edit-button:hover svg {
   transform: rotate(15deg) scale(1.1);
+}
+
+.allergy-edit-row.minimal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-height: 32px;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.fade-in {
+  animation: fadeInTag 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+@keyframes fadeInTag {
+  0% { opacity: 0; transform: scale(0.85) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.allergy-chip {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(90deg, #fff0f6 60%, #f8bbd0 100%);
+  color: #aa244e;
+  border-radius: 16px;
+  padding: 5px 14px 5px 12px;
+  font-size: 15px;
+  font-weight: 500;
+  margin-right: 2px;
+  margin-bottom: 2px;
+  border: 1.5px solid #f8bbd0;
+  box-shadow: 0 2px 8px rgba(170,36,78,0.10);
+  transition: box-shadow 0.2s, border 0.2s, background 0.2s;
+}
+
+.allergy-chip:hover {
+  box-shadow: 0 4px 16px rgba(170,36,78,0.13);
+  border: 1.5px solid #aa244e;
+  background: linear-gradient(90deg, #ffe3ed 60%, #f8bbd0 100%);
+}
+
+.allergy-remove.animated {
+  background: none;
+  border: none;
+  color: #e5396a;
+  font-size: 18px;
+  margin-left: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s, transform 0.18s;
+  padding: 0 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.allergy-remove.animated:hover {
+  background: #ffe3ed;
+  color: #c33b66;
+  transform: scale(1.25) rotate(-12deg);
+}
+
+.allergy-add-row.enhanced {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  background: #fff0f6;
+  border-radius: 18px;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px rgba(170,36,78,0.06);
+  border: 1.5px solid #f8bbd0;
+}
+
+.allergy-input {
+  border: 1.5px solid #f8bbd0;
+  border-radius: 16px;
+  padding: 7px 14px;
+  font-size: 15px;
+  outline: none;
+  min-width: 110px;
+  transition: border 0.2s;
+  background: #fff;
+  color: #aa244e;
+  font-weight: 500;
+}
+
+.allergy-input:focus {
+  border: 1.5px solid #aa244e;
+  background: #fff0f6;
+}
+
+.allergy-add.enhanced {
+  background: linear-gradient(90deg, #aa244e 60%, #f8bbd0 100%);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 7px 22px 7px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 2px 8px rgba(170,36,78,0.10);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+.allergy-add.enhanced:hover, .allergy-add.enhanced:focus {
+  background: linear-gradient(90deg, #c33b66 60%, #f8bbd0 100%);
+  box-shadow: 0 4px 16px rgba(170,36,78,0.18);
+  transform: scale(1.04);
+}
+
+.plus-icon {
+  font-size: 20px;
+  font-weight: 700;
+  margin-right: 2px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.allergy-add.enhanced:hover .plus-icon {
+  color: #ffe3ed;
+  transform: scale(1.18) rotate(12deg);
+}
+
+.medical-history-edit-group {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(170,36,78,0.07);
+  border: 1.5px solid #f8bbd0;
+  padding: 32px 24px 18px 24px;
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.form-group {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--primary-dark);
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.pro-medical-history-bg {
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffe3ed 100%);
+  border-radius: 24px;
+  padding: 32px 18px 18px 18px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.pro-medical-card {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(170,36,78,0.09);
+  border: 1.5px solid #f8bbd0;
+  padding: 28px 24px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pro-medical-header {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.pro-medical-header i {
+  font-size: 1.3em;
+  color: var(--primary);
+}
+
+.pro-divider {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, #f8bbd0 0%, #fff 100%);
+  border-radius: 2px;
+  margin-left: 16px;
+  opacity: 0.5;
+}
+
+.pro-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  min-height: 36px;
+  margin-top: 2px;
+}
+
+.pro-none {
+  color: #888;
+  font-size: 1.05em;
+  background: #f8bbd0;
+  border-radius: 14px;
+  padding: 7px 18px;
+  margin: 0 auto;
+  display: inline-block;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.pro-animate-card {
+  animation: proCardIn 0.5s cubic-bezier(0.4,0,0.2,1);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+@keyframes proCardIn {
+  0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pro-medical-card:hover {
+  box-shadow: 0 8px 32px rgba(170,36,78,0.16);
+  transform: translateY(-2px) scale(1.01);
+}
+
+.pro-animate-tag {
+  transition: box-shadow 0.18s, background 0.18s, color 0.18s, transform 0.18s;
+}
+
+.pro-animate-tag:hover {
+  box-shadow: 0 4px 16px rgba(170,36,78,0.18);
+  background: linear-gradient(90deg, #ffe3ed 60%, #f8bbd0 100%);
+  color: #c33b66;
+  transform: scale(1.08) rotate(-2deg);
+  z-index: 2;
+}
+
+.pro-icon-allergy {
+  color: #c33b66;
+}
+.pro-icon-surgery {
+  color: #1976d2;
+}
+.pro-icon-condition {
+  color: #43a047;
+}
+.pro-icon-medication {
+  color: #7b1fa2;
+}
+
+.pro-summary {
+  font-size: 1.05em;
+  color: #888;
+  font-weight: 400;
+  margin-bottom: 8px;
+  margin-top: -6px;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .pro-medical-history-bg {
+    padding: 16px 2px 8px 2px;
+    gap: 18px;
+  }
+  .pro-medical-card {
+    padding: 18px 8px 10px 8px;
+    gap: 10px;
+  }
+  .pro-medical-header {
+    font-size: 1.1rem;
+    gap: 8px;
+  }
+  .pro-tag-row {
+    gap: 7px;
+    min-height: 28px;
+  }
+}
+
+.pro-centered-row {
+  justify-content: center;
+  align-items: center;
+  padding: 18px 0 10px 0;
+  background: linear-gradient(90deg, #fff0f6 60%, #f8bbd0 100%);
+  border-radius: 14px;
+  min-height: 60px;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.pro-none-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 0 8px 0;
+}
+
+.pro-none-icon {
+  font-size: 2.2em;
+  opacity: 0.22;
+  margin-bottom: 8px;
+  margin-top: 2px;
+}
+
+.allergy-chip {
+  font-size: 1.13em;
+  padding: 10px 26px 10px 20px;
+  border-radius: 22px;
+  margin: 0 6px 6px 0;
+  box-shadow: 0 2px 10px rgba(170,36,78,0.10);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 768px) {
+  .pro-centered-row {
+    padding: 10px 0 6px 0;
+    min-height: 38px;
+    gap: 10px;
+  }
+  .allergy-chip {
+    font-size: 1em;
+    padding: 7px 16px 7px 12px;
+    border-radius: 16px;
+    margin: 0 3px 3px 0;
+  }
+  .pro-none-icon {
+    font-size: 1.4em;
+    margin-bottom: 4px;
+  }
 }

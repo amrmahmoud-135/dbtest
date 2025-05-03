@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./PatientProfile.css";
 import babyLogo from "../images/imgg.png";
@@ -65,16 +65,23 @@ const PatientProfile = () => {
   });
   
   const [editMedicalFormData, setEditMedicalFormData] = useState({
-    allergies: "",
-    surgeries: "",
-    chronicConditions: "",
-    medications: ""
+    allergies: [],
+    surgeries: [],
+    chronicConditions: [],
+    medications: [],
+    _newAllergy: '',
+    _newSurgery: '',
+    _newCondition: '',
+    _newMedication: ''
   });
   
   const [newNote, setNewNote] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [editedNoteText, setEditedNoteText] = useState("");
+
+  const allergyInputRef = useRef(null);
+  const allergyRowRef = useRef(null);
 
   const handleEditChange = (e) => {
     const { name, value } = e.target;
@@ -114,8 +121,13 @@ const PatientProfile = () => {
           user: {
             ...prevData.user,
             ...user,
-            // Ensure dob has a default value if it's missing
             dob: user.dob || ""
+          },
+          medicalHistory: {
+            allergies: user.medicalHistory?.allergies || [],
+            surgeries: user.medicalHistory?.surgeries || [],
+            chronicConditions: user.medicalHistory?.chronicConditions || [],
+            medications: user.medicalHistory?.medications || []
           },
           age
         }));
@@ -143,7 +155,7 @@ const PatientProfile = () => {
         // Update form data with safe defaults
         setEditFormData({
           name: user.name || "",
-          dob: user.dob || "", // Remove the slice operation since dob might be missing
+          dob: user.dob || "",
           nationalId: user.nationalId || "",
           patientId: user.id || ""
         });
@@ -155,10 +167,14 @@ const PatientProfile = () => {
         });
         
         setEditMedicalFormData({
-          allergies: user.allergies?.join(", ") || "",
-          surgeries: user.surgeries?.join(", ") || "",
-          chronicConditions: user.chronicConditions?.join(", ") || "",
-          medications: user.medications?.join(", ") || ""
+          allergies: user.medicalHistory?.allergies || [],
+          surgeries: user.medicalHistory?.surgeries || [],
+          chronicConditions: user.medicalHistory?.chronicConditions || [],
+          medications: user.medicalHistory?.medications || [],
+          _newAllergy: "",
+          _newSurgery: "",
+          _newCondition: "",
+          _newMedication: ""
         });
       } catch (error) {
         console.error("Error fetching patient data:", error);
@@ -363,26 +379,60 @@ const PatientProfile = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          allergies: editMedicalFormData.allergies.split(',').map(item => item.trim()),
-          surgeries: editMedicalFormData.surgeries.split(',').map(item => item.trim()),
-          chronicConditions: editMedicalFormData.chronicConditions.split(',').map(item => item.trim()),
-          medications: editMedicalFormData.medications.split(',').map(item => item.trim())
+          allergies: editMedicalFormData.allergies,
+          surgeries: editMedicalFormData.surgeries,
+          chronicConditions: editMedicalFormData.chronicConditions,
+          medications: editMedicalFormData.medications
         }),
       });
 
       const result = await response.json();
 
-      if (response.ok) {
+      if (response.ok && result.success) {
+        // Update the local state with the new medical history data
         setPatientData(prev => ({
           ...prev,
-          medicalHistory: result.medicalHistory
+          medicalHistory: {
+            allergies: result.medicalHistory.allergies || [],
+            surgeries: result.medicalHistory.surgeries || [],
+            chronicConditions: result.medicalHistory.chronicConditions || [],
+            medications: result.medicalHistory.medications || []
+          }
         }));
+        
+        // Update the edit form data to match
+        setEditMedicalFormData(prev => ({
+          ...prev,
+          allergies: result.medicalHistory.allergies || [],
+          surgeries: result.medicalHistory.surgeries || [],
+          chronicConditions: result.medicalHistory.chronicConditions || [],
+          medications: result.medicalHistory.medications || [],
+          _newAllergy: '',
+          _newSurgery: '',
+          _newCondition: '',
+          _newMedication: ''
+        }));
+
         setIsEditingMedical(false);
+        setNotification({
+          show: true,
+          message: 'Medical history updated successfully!',
+          type: 'success'
+        });
       } else {
-        alert(`Error: ${result.message}`);
+        setNotification({
+          show: true,
+          message: result.message || 'Failed to update medical history',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error("Error saving medical history:", error);
+      setNotification({
+        show: true,
+        message: 'An error occurred while saving medical history',
+        type: 'error'
+      });
     }
   };
 
@@ -580,6 +630,20 @@ const PatientProfile = () => {
     });
   };
 
+  const handleEditMedicalClick = () => {
+    setEditMedicalFormData({
+      allergies: Array.isArray(patientData.medicalHistory.allergies) ? patientData.medicalHistory.allergies : [],
+      surgeries: Array.isArray(patientData.medicalHistory.surgeries) ? patientData.medicalHistory.surgeries : [],
+      chronicConditions: Array.isArray(patientData.medicalHistory.chronicConditions) ? patientData.medicalHistory.chronicConditions : [],
+      medications: Array.isArray(patientData.medicalHistory.medications) ? patientData.medicalHistory.medications : [],
+      _newAllergy: '',
+      _newSurgery: '',
+      _newCondition: '',
+      _newMedication: ''
+    });
+    setIsEditingMedical(true);
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -615,6 +679,7 @@ const PatientProfile = () => {
   const { user, pregnancyInfo, bloodGroup, medicalHistory, notes } = patientData;
 
   const getInitials = (name) => {
+    if (!name) return 'P';
     return name
       .split(' ')
       .map(n => n[0])
@@ -844,7 +909,7 @@ const PatientProfile = () => {
                 Medical History
               </h2>
               {!isEditingMedical && (
-                <button className="edit-button" onClick={() => setIsEditingMedical(true)}>
+                <button className="edit-button" onClick={handleEditMedicalClick}>
                   <i className="fas fa-edit"></i>
                   Edit Medical History
                 </button>
@@ -853,46 +918,276 @@ const PatientProfile = () => {
             
             {isEditingMedical ? (
               <div className="edit-form">
-                <div className="form-group">
-                  <label><i className="fas fa-allergies"></i> Allergies (comma separated)</label>
-                  <input
-                    type="text"
-                    name="allergies"
-                    value={editMedicalFormData.allergies}
-                    onChange={handleMedicalEditChange}
-                  />
+                <div className="medical-history-edit-group">
+                  {/* Allergies */}
+                  <div className="form-group">
+                    <label><i className="fas fa-allergies"></i> Allergies</label>
+                    <div className="allergy-edit-row minimal">
+                      {editMedicalFormData.allergies.map((allergy, idx) => (
+                        <span key={allergy + idx} className="allergy-chip fade-in">
+                          {allergy}
+                          <button
+                            type="button"
+                            className="allergy-remove animated"
+                            title={`Remove ${allergy}`}
+                            aria-label={`Remove ${allergy}`}
+                            onClick={() => {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                allergies: editMedicalFormData.allergies.filter((_, i) => i !== idx)
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="allergy-add-row enhanced">
+                      <input
+                        type="text"
+                        className="allergy-input"
+                        placeholder="Add allergy"
+                        value={editMedicalFormData._newAllergy || ''}
+                        onChange={e => setEditMedicalFormData({ ...editMedicalFormData, _newAllergy: e.target.value })}
+                        onKeyDown={e => {
+                          if ((e.key === 'Enter' || e.key === ',') && editMedicalFormData._newAllergy?.trim()) {
+                            const newAllergy = editMedicalFormData._newAllergy.trim();
+                            if (newAllergy && !editMedicalFormData.allergies.includes(newAllergy)) {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                allergies: [...editMedicalFormData.allergies, newAllergy],
+                                _newAllergy: ''
+                              });
+                            } else {
+                              setEditMedicalFormData({ ...editMedicalFormData, _newAllergy: '' });
+                            }
+                            e.preventDefault();
+                          }
+                        }}
+                        aria-label="Add allergy"
+                      />
+                      <button
+                        type="button"
+                        className="save-button global"
+                        aria-label="Add allergy"
+                        onClick={() => {
+                          const newAllergy = editMedicalFormData._newAllergy?.trim();
+                          if (newAllergy && !editMedicalFormData.allergies.includes(newAllergy)) {
+                            setEditMedicalFormData({
+                              ...editMedicalFormData,
+                              allergies: [...editMedicalFormData.allergies, newAllergy],
+                              _newAllergy: ''
+                            });
+                          }
+                        }}
+                      >
+                        <i className="fas fa-plus"></i> Add
+                      </button>
+                    </div>
+                  </div>
+                  {/* Surgeries */}
+                  <div className="form-group">
+                    <label><i className="fas fa-procedures"></i> Surgeries</label>
+                    <div className="allergy-edit-row minimal">
+                      {editMedicalFormData.surgeries.map((surgery, idx) => (
+                        <span key={surgery + idx} className="allergy-chip fade-in">
+                          {surgery}
+                          <button
+                            type="button"
+                            className="allergy-remove animated"
+                            title={`Remove ${surgery}`}
+                            aria-label={`Remove ${surgery}`}
+                            onClick={() => {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                surgeries: editMedicalFormData.surgeries.filter((_, i) => i !== idx)
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="allergy-add-row enhanced">
+                      <input
+                        type="text"
+                        className="allergy-input"
+                        placeholder="Add surgery"
+                        value={editMedicalFormData._newSurgery || ''}
+                        onChange={e => setEditMedicalFormData({ ...editMedicalFormData, _newSurgery: e.target.value })}
+                        onKeyDown={e => {
+                          if ((e.key === 'Enter' || e.key === ',') && editMedicalFormData._newSurgery?.trim()) {
+                            const newSurgery = editMedicalFormData._newSurgery.trim();
+                            if (newSurgery && !editMedicalFormData.surgeries.includes(newSurgery)) {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                surgeries: [...editMedicalFormData.surgeries, newSurgery],
+                                _newSurgery: ''
+                              });
+                            } else {
+                              setEditMedicalFormData({ ...editMedicalFormData, _newSurgery: '' });
+                            }
+                            e.preventDefault();
+                          }
+                        }}
+                        aria-label="Add surgery"
+                      />
+                      <button
+                        type="button"
+                        className="save-button global"
+                        aria-label="Add surgery"
+                        onClick={() => {
+                          const newSurgery = editMedicalFormData._newSurgery?.trim();
+                          if (newSurgery && !editMedicalFormData.surgeries.includes(newSurgery)) {
+                            setEditMedicalFormData({
+                              ...editMedicalFormData,
+                              surgeries: [...editMedicalFormData.surgeries, newSurgery],
+                              _newSurgery: ''
+                            });
+                          }
+                        }}
+                      >
+                        <i className="fas fa-plus"></i> Add
+                      </button>
+                    </div>
+                  </div>
+                  {/* Chronic Conditions */}
+                  <div className="form-group">
+                    <label><i className="fas fa-heartbeat"></i> Chronic Conditions</label>
+                    <div className="allergy-edit-row minimal">
+                      {editMedicalFormData.chronicConditions.map((condition, idx) => (
+                        <span key={condition + idx} className="allergy-chip fade-in">
+                          {condition}
+                          <button
+                            type="button"
+                            className="allergy-remove animated"
+                            title={`Remove ${condition}`}
+                            aria-label={`Remove ${condition}`}
+                            onClick={() => {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                chronicConditions: editMedicalFormData.chronicConditions.filter((_, i) => i !== idx)
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="allergy-add-row enhanced">
+                      <input
+                        type="text"
+                        className="allergy-input"
+                        placeholder="Add condition"
+                        value={editMedicalFormData._newCondition || ''}
+                        onChange={e => setEditMedicalFormData({ ...editMedicalFormData, _newCondition: e.target.value })}
+                        onKeyDown={e => {
+                          if ((e.key === 'Enter' || e.key === ',') && editMedicalFormData._newCondition?.trim()) {
+                            const newCondition = editMedicalFormData._newCondition.trim();
+                            if (newCondition && !editMedicalFormData.chronicConditions.includes(newCondition)) {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                chronicConditions: [...editMedicalFormData.chronicConditions, newCondition],
+                                _newCondition: ''
+                              });
+                            } else {
+                              setEditMedicalFormData({ ...editMedicalFormData, _newCondition: '' });
+                            }
+                            e.preventDefault();
+                          }
+                        }}
+                        aria-label="Add condition"
+                      />
+                      <button
+                        type="button"
+                        className="save-button global"
+                        aria-label="Add condition"
+                        onClick={() => {
+                          const newCondition = editMedicalFormData._newCondition?.trim();
+                          if (newCondition && !editMedicalFormData.chronicConditions.includes(newCondition)) {
+                            setEditMedicalFormData({
+                              ...editMedicalFormData,
+                              chronicConditions: [...editMedicalFormData.chronicConditions, newCondition],
+                              _newCondition: ''
+                            });
+                          }
+                        }}
+                      >
+                        <i className="fas fa-plus"></i> Add
+                      </button>
+                    </div>
+                  </div>
+                  {/* Medications */}
+                  <div className="form-group">
+                    <label><i className="fas fa-pills"></i> Current Medications</label>
+                    <div className="allergy-edit-row minimal">
+                      {editMedicalFormData.medications.map((medication, idx) => (
+                        <span key={medication + idx} className="allergy-chip fade-in">
+                          {medication}
+                          <button
+                            type="button"
+                            className="allergy-remove animated"
+                            title={`Remove ${medication}`}
+                            aria-label={`Remove ${medication}`}
+                            onClick={() => {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                medications: editMedicalFormData.medications.filter((_, i) => i !== idx)
+                              });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="allergy-add-row enhanced">
+                      <input
+                        type="text"
+                        className="allergy-input"
+                        placeholder="Add medication"
+                        value={editMedicalFormData._newMedication || ''}
+                        onChange={e => setEditMedicalFormData({ ...editMedicalFormData, _newMedication: e.target.value })}
+                        onKeyDown={e => {
+                          if ((e.key === 'Enter' || e.key === ',') && editMedicalFormData._newMedication?.trim()) {
+                            const newMedication = editMedicalFormData._newMedication.trim();
+                            if (newMedication && !editMedicalFormData.medications.includes(newMedication)) {
+                              setEditMedicalFormData({
+                                ...editMedicalFormData,
+                                medications: [...editMedicalFormData.medications, newMedication],
+                                _newMedication: ''
+                              });
+                            } else {
+                              setEditMedicalFormData({ ...editMedicalFormData, _newMedication: '' });
+                            }
+                            e.preventDefault();
+                          }
+                        }}
+                        aria-label="Add medication"
+                      />
+                      <button
+                        type="button"
+                        className="save-button global"
+                        aria-label="Add medication"
+                        onClick={() => {
+                          const newMedication = editMedicalFormData._newMedication?.trim();
+                          if (newMedication && !editMedicalFormData.medications.includes(newMedication)) {
+                            setEditMedicalFormData({
+                              ...editMedicalFormData,
+                              medications: [...editMedicalFormData.medications, newMedication],
+                              _newMedication: ''
+                            });
+                          }
+                        }}
+                      >
+                        <i className="fas fa-plus"></i> Add
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="form-group">
-                  <label><i className="fas fa-procedures"></i> Surgeries (comma separated)</label>
-                  <input
-                    type="text"
-                    name="surgeries"
-                    value={editMedicalFormData.surgeries}
-                    onChange={handleMedicalEditChange}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label><i className="fas fa-heartbeat"></i> Chronic Conditions (comma separated)</label>
-                  <input
-                    type="text"
-                    name="chronicConditions"
-                    value={editMedicalFormData.chronicConditions}
-                    onChange={handleMedicalEditChange}
-                  />
-                </div>
-                
-                <div className="form-group">
-                  <label><i className="fas fa-pills"></i> Current Medications (comma separated)</label>
-                  <input
-                    type="text"
-                    name="medications"
-                    value={editMedicalFormData.medications}
-                    onChange={handleMedicalEditChange}
-                  />
-                </div>
-                
                 <div className="form-actions">
                   <button className="cancel-button" onClick={() => setIsEditingMedical(false)}>
                     <i className="fas fa-times"></i>
@@ -905,70 +1200,76 @@ const PatientProfile = () => {
                 </div>
               </div>
             ) : (
-              <>
-                <div className="medical-category">
-                  <h3><i className="fas fa-allergies"></i> Allergies</h3>
-                  <div className="tags">
+              <div className="pro-medical-history-bg">
+                <div className="pro-medical-card pro-animate-card" aria-labelledby="allergies-section">
+                  <div className="pro-medical-header" id="allergies-section">
+                    <i className="fas fa-allergies pro-icon-allergy"></i> Allergies <div className="pro-divider"></div>
+                  </div>
+                  <div className="pro-tag-row pro-centered-row">
                     {medicalHistory?.allergies?.length > 0 ? (
                       medicalHistory.allergies.map((allergy, i) => (
-                        <span key={i} className="tag allergy">
-                          <i className="fas fa-exclamation-circle"></i> {allergy}
-                        </span>
+                        <span key={allergy + i} className="allergy-chip fade-in pro-animate-tag" aria-label={`Allergy: ${allergy}`}>{allergy}</span>
                       ))
                     ) : (
-                      <span className="tag">None recorded</span>
+                      <div className="pro-none-centered">
+                        <i className="fas fa-exclamation-circle pro-none-icon pro-icon-allergy"></i>
+                        <div className="pro-none">None recorded</div>
+                      </div>
                     )}
                   </div>
                 </div>
-                
-                <div className="medical-category">
-                  <h3><i className="fas fa-procedures"></i> Previous Surgeries</h3>
+                <div className="pro-medical-card pro-animate-card" aria-labelledby="surgeries-section">
+                  <div className="pro-medical-header" id="surgeries-section">
+                    <i className="fas fa-procedures pro-icon-surgery"></i> Surgeries <div className="pro-divider"></div>
+                  </div>
+                  <div className="pro-tag-row pro-centered-row">
                     {medicalHistory?.surgeries?.length > 0 ? (
-                    <ul className="medical-list">
-                      {medicalHistory.surgeries.map((surgery, i) => (
-                        <li key={i}><i className="fas fa-check"></i> {surgery}</li>
-                      ))}
-                    </ul>
+                      medicalHistory.surgeries.map((surgery, i) => (
+                        <span key={surgery + i} className="allergy-chip fade-in pro-animate-tag" aria-label={`Surgery: ${surgery}`}>{surgery}</span>
+                      ))
                     ) : (
-                    <div className="empty-state">
-                      <i className="fas fa-clipboard-list"></i>
-                      <p>No surgeries recorded</p>
-                    </div>
+                      <div className="pro-none-centered">
+                        <i className="fas fa-clipboard-list pro-none-icon pro-icon-surgery"></i>
+                        <div className="pro-none">None recorded</div>
+                      </div>
                     )}
+                  </div>
                 </div>
-                
-                <div className="medical-category">
-                  <h3><i className="fas fa-heartbeat"></i> Chronic Conditions</h3>
+                <div className="pro-medical-card pro-animate-card" aria-labelledby="conditions-section">
+                  <div className="pro-medical-header" id="conditions-section">
+                    <i className="fas fa-heartbeat pro-icon-condition"></i> Chronic Conditions <div className="pro-divider"></div>
+                  </div>
+                  <div className="pro-tag-row pro-centered-row">
                     {medicalHistory?.chronicConditions?.length > 0 ? (
-                    <ul className="medical-list">
-                      {medicalHistory.chronicConditions.map((condition, i) => (
-                        <li key={i}><i className="fas fa-circle"></i> {condition}</li>
-                      ))}
-                    </ul>
+                      medicalHistory.chronicConditions.map((condition, i) => (
+                        <span key={condition + i} className="allergy-chip fade-in pro-animate-tag" aria-label={`Condition: ${condition}`}>{condition}</span>
+                      ))
                     ) : (
-                    <div className="empty-state">
-                      <i className="fas fa-heart"></i>
-                      <p>No chronic conditions recorded</p>
-                    </div>
+                      <div className="pro-none-centered">
+                        <i className="fas fa-heart pro-none-icon pro-icon-condition"></i>
+                        <div className="pro-none">None recorded</div>
+                      </div>
                     )}
+                  </div>
                 </div>
-                
-                <div className="medical-category">
-                  <h3><i className="fas fa-pills"></i> Current Medications</h3>
+                <div className="pro-medical-card pro-animate-card" aria-labelledby="medications-section">
+                  <div className="pro-medical-header" id="medications-section">
+                    <i className="fas fa-pills pro-icon-medication"></i> Current Medications <div className="pro-divider"></div>
+                  </div>
+                  <div className="pro-tag-row pro-centered-row">
                     {medicalHistory?.medications?.length > 0 ? (
-                    <ul className="medical-list">
-                      {medicalHistory.medications.map((medication, i) => (
-                        <li key={i}><i className="fas fa-prescription-bottle-alt"></i> {medication}</li>
-                      ))}
-                    </ul>
+                      medicalHistory.medications.map((medication, i) => (
+                        <span key={medication + i} className="allergy-chip fade-in pro-animate-tag" aria-label={`Medication: ${medication}`}>{medication}</span>
+                      ))
                     ) : (
-                    <div className="empty-state">
-                      <i className="fas fa-prescription"></i>
-                      <p>No medications recorded</p>
-                    </div>
+                      <div className="pro-none-centered">
+                        <i className="fas fa-prescription-bottle-alt pro-none-icon pro-icon-medication"></i>
+                        <div className="pro-none">None recorded</div>
+                      </div>
                     )}
+                  </div>
                 </div>
-              </>
+              </div>
             )}
           </div>
         );
@@ -1153,7 +1454,7 @@ const PatientProfile = () => {
                 />
               ) : (
                 <div className="profile-photo-placeholder">
-                  {getInitials(user.name)}
+                  {getInitials(user?.name || '')}
                 </div>
               )}
               <div className="edit-photo-wrapper">

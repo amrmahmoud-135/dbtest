@@ -28,8 +28,30 @@ exports.getUserDetails = async (req, res) => {
             });
         } else if (role === 'patient') {
             user = await prisma.patient.findUnique({
-                where: { id: userId }
+                where: { id: userId },
+                include: {
+                    medicalHistories: {
+                        orderBy: {
+                            date: 'desc'
+                        },
+                        take: 1
+                    }
+                }
             });
+
+            // If user is a patient, include the latest medical history
+            if (user && user.medicalHistories && user.medicalHistories.length > 0) {
+                user.medicalHistory = user.medicalHistories[0];
+            } else {
+                user.medicalHistory = {
+                    allergies: [],
+                    surgeries: [],
+                    chronicConditions: [],
+                    medications: []
+                };
+            }
+            // Remove the medicalHistories array since we've extracted the latest one
+            delete user.medicalHistories;
         } else {
             return res.status(400).json({ success: false, message: 'Invalid role' });
         }
@@ -113,6 +135,7 @@ exports.updateMedicalHistory = async (req, res) => {
     if (role !== 'patient') {
       return res.status(403).json({ success: false, message: 'Only patients can update medical history' });
     }
+
     // Convert comma-separated strings to arrays if needed
     const toArray = (val) =>
       Array.isArray(val)
@@ -153,12 +176,29 @@ exports.updateMedicalHistory = async (req, res) => {
           chronicConditions,
           medications,
           patientId: userId,
+          date: new Date(),
         },
       });
     }
-    res.status(200).json({ success: true, medicalHistory });
+
+    // Fetch the updated medical history with the patient relation
+    const updatedMedicalHistory = await prisma.medicalHistory.findUnique({
+      where: { id: medicalHistory.id },
+      include: {
+        patient: true
+      }
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      medicalHistory: updatedMedicalHistory 
+    });
   } catch (error) {
     console.error('Error updating medical history:', error);
-    res.status(500).json({ success: false, message: error.message, full: error });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update medical history',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 };
