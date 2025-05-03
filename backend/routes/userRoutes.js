@@ -13,4 +13,10 @@ router.put(
   userController.updateUserProfile
 );
 
+router.put(
+  "/user/medical-history",
+  authenticateUser,
+  userController.updateMedicalHistory
+);
+
 module.exports = router;

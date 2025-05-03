@@ -93,7 +93,8 @@ exports.updateUserProfile = async (req, res) => {
         return res.status(200).json({ 
             success: true, 
             message: 'Profile updated successfully', 
-            data: { user: updatedUser, age } 
+            user: updatedUser, 
+            age 
         });
     } catch (error) {
         console.error('Error updating user profile:', error);
@@ -103,4 +104,61 @@ exports.updateUserProfile = async (req, res) => {
             error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' 
         });
     }
+};
+
+exports.updateMedicalHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const role = req.user.role;
+    if (role !== 'patient') {
+      return res.status(403).json({ success: false, message: 'Only patients can update medical history' });
+    }
+    // Convert comma-separated strings to arrays if needed
+    const toArray = (val) =>
+      Array.isArray(val)
+        ? val
+        : typeof val === 'string'
+        ? val.split(',').map((item) => item.trim()).filter(Boolean)
+        : [];
+
+    const allergies = toArray(req.body.allergies);
+    const surgeries = toArray(req.body.surgeries);
+    const chronicConditions = toArray(req.body.chronicConditions);
+    const medications = toArray(req.body.medications);
+
+    // Find the latest medical history record for this patient
+    let medicalHistory = await prisma.medicalHistory.findFirst({
+      where: { patientId: userId },
+      orderBy: { date: 'desc' }
+    });
+
+    if (medicalHistory) {
+      // Update the latest record
+      medicalHistory = await prisma.medicalHistory.update({
+        where: { id: medicalHistory.id },
+        data: {
+          allergies,
+          surgeries,
+          chronicConditions,
+          medications,
+          date: new Date(),
+        },
+      });
+    } else {
+      // Create a new record if none exists
+      medicalHistory = await prisma.medicalHistory.create({
+        data: {
+          allergies,
+          surgeries,
+          chronicConditions,
+          medications,
+          patientId: userId,
+        },
+      });
+    }
+    res.status(200).json({ success: true, medicalHistory });
+  } catch (error) {
+    console.error('Error updating medical history:', error);
+    res.status(500).json({ success: false, message: error.message, full: error });
+  }
 };

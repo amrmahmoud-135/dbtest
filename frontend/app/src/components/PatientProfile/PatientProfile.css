@@ -610,6 +610,8 @@ body {
   padding: 0 15px;
   position: relative;
   letter-spacing: 0.3px;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .note-meta {
@@ -793,6 +795,8 @@ body {
   font-family: inherit;
   resize: vertical;
   min-height: 140px;
+  max-height: 180px;
+  overflow-y: auto;
   margin-bottom: 25px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-size: 15px;

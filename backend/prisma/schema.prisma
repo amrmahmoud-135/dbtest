@@ -47,15 +47,15 @@ model Report {
 }
 
 model MedicalHistory {
-  id          Int      @id @default(autoincrement())
-  diagnosis   String
-  treatment   String
-  dose        String
-  notes       String?
-  date        DateTime @default(now())
-  patientId   Int
+  id                Int      @id @default(autoincrement())
+  allergies         String[]
+  surgeries         String[]
+  chronicConditions String[]
+  medications       String[]
+  date              DateTime @default(now())
+  patientId         Int
 
-  patient     Patient  @relation(fields: [patientId], references: [id])
+  patient           Patient  @relation(fields: [patientId], references: [id])
 }
 
 model Doctor {
@@ -89,6 +89,8 @@ model Patient {
   appointments      Appointment[]   
   prescriptions     Prescription[]
   notes            PatientNote[]  
+  pregnancies       Pregnancy[]
+  pregnancyInfos    PregnancyInfo[]
 }
 
 model Appointment {
@@ -121,4 +123,32 @@ model PatientNote {
   updatedAt   DateTime @updatedAt
   patientId   Int
   patient     Patient  @relation(fields: [patientId], references: [id])
+}
+
+
+model PregnancyInfo {
+  id                    Int      @id @default(autoincrement())
+  patientId             Int      @unique
+  lmp                   DateTime?
+  edd                   DateTime?
+  currentWeek           Int      @default(0)
+  gravida               Int      @default(0)
+  para                  Int      @default(0)
+  abortions             Int      @default(0)
+  highRiskFactors       String?
+  previousComplications String?
+  patient               Patient  @relation(fields: [patientId], references: [id])
+}
+
+model Pregnancy {
+  id              Int      @id @default(autoincrement())
+  currentWeek     Int
+  lmp             DateTime?
+  edd             DateTime?
+  gravida         Int
+  para            Int
+  abortions       Int
+  ultrasoundDates DateTime[]
+  patientId       Int
+  patient         Patient  @relation(fields: [patientId], references: [id])
 }

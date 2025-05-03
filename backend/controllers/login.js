@@ -59,11 +59,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during login:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to login",
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    res.status(500).json({ success: false, message: "Failed to login" });
   }
 };
 

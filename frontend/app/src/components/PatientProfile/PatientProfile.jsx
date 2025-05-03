@@ -340,6 +340,12 @@ const PatientProfile = () => {
           }
         }));
         setIsEditingContact(false);
+        setNotification({
+          show: true,
+          message: 'Contact information updated successfully!',
+          type: 'success'
+        });
+        setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
       } else {
         alert(`Error: ${result.message}`);
       }
@@ -1052,6 +1058,8 @@ const PatientProfile = () => {
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder="Write your note here..."
                 rows="4"
+                maxLength={1000}
+                style={{ maxHeight: "180px", overflowY: "auto", resize: "vertical" }}
               />
               <div className="doctor-input-container">
                 <input
